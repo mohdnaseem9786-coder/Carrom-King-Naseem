@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CARROM KING NASEEM - ATOMIC MULTIPLAYER</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+:root{--gold:#f6d06e}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#28110c;color:#fff4dd;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+body{padding:10px 12px 24px;background:radial-gradient(ellipse at 50% 28%,#8c4222 0,#4b2115 58%,#24100c 100%)}
+.app{width:min(100%,560px);margin:auto}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:13px;border:1px solid #d9a34e;border-radius:18px;background:linear-gradient(120deg,#77391e,#482014);box-shadow:0 4px #2b120c}
+.brand{font-size:clamp(17px,4.7vw,24px);font-weight:900}.coins{white-space:nowrap;color:#ffe28c;font-weight:900;border:1px solid var(--gold);border-radius:25px;padding:8px 10px}
+.screen{display:none}.screen.active{display:block}.panel{margin-top:13px;padding:14px;border:1px solid #bd8742;border-radius:18px;background:linear-gradient(145deg,rgba(108,49,24,.97),rgba(64,27,16,.98));box-shadow:0 4px #2b120c}
+h2,p{margin:0}h2{font-size:21px;margin-bottom:7px}.sub{font-size:13px;line-height:1.5;color:#f2d4a5}
+button{font:inherit;font-weight:850;color:#fff8e6;border:2px solid #e8bb60;border-radius:14px;padding:13px 10px;background:linear-gradient(#a95d2d,#70351d);box-shadow:0 3px #3a170d;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+button:active{transform:translateY(2px);box-shadow:0 1px #3a170d}.primary{width:100%;margin-top:12px;background:linear-gradient(#18c2af,#087e78);font-size:18px}
+input[type="text"]{width:100%;padding:11px;border-radius:11px;border:1px solid #b98443;background:#1b0b07;color:#fff;margin-top:8px;font-size:16px}
+.boardwrap{position:relative;width:100%;aspect-ratio:1/1;margin:0 auto;touch-action:none;user-select:none;isolation:isolate}
+#board{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:16px;touch-action:none;filter:saturate(1.08) contrast(1.025)}
+.online-comms{display:flex;position:fixed;right:12px;bottom:96px;z-index:5000;gap:9px;flex-direction:column;align-items:flex-end}
+.online-comms .comm-btn{width:52px;height:52px;border-radius:50%;padding:0;border:2px solid #f6d06e;background:linear-gradient(145deg,#9b5a24,#4c2113);box-shadow:0 4px 12px #140603aa;font-size:24px;display:grid;place-items:center}
+.chat-panel{display:none;position:fixed;right:12px;bottom:212px;width:min(340px,calc(100vw - 24px));height:min(430px,58dvh);z-index:5001;border:2px solid #e8bb60;border-radius:18px;background:linear-gradient(145deg,#542414,#25100a);box-shadow:0 8px 30px #000b;flex-direction:column}
+.chat-panel.open{display:flex}.chat-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #bd8742;font-weight:900;color:#ffe7a5}
+.chat-messages{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:7px}.chat-msg{max-width:82%;padding:8px 10px;border-radius:13px;font-size:13px;line-height:1.3;background:#3a1b10;border:1px solid #87542d}
+.chat-compose{display:flex;gap:6px;padding:8px;border-top:1px solid #bd8742}.chat-compose input{flex:1;min-width:0;border:1px solid #b98443;border-radius:11px;padding:9px;background:#1b0b07;color:#fff;margin-top:0}
+.timer-badge{background:#512313;border:1px solid var(--gold);padding:4px 10px;border-radius:12px;font-weight:bold;color:#ffe28c}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top"><div class="brand">👑 CARROM KING NASEEM</div><div class="coins">🪙 5,400</div></header>
+
+<section id="home" class="screen active">
+<div class="panel" style="text-align:center">
+<h2>GAME MODES</h2>
+<p class="sub">Choose how you want to play.</p>
+<button class="primary" onclick="showOfflineMenu()">🎮 OFFLINE</button>
+<button class="primary" style="background:linear-gradient(#2b6cb0,#1a365d)" onclick="showOnlineMenu()">🌐 ONLINE</button>
+</div>
+</section>
+
+<section id="offlineMenu" class="screen">
+<div class="panel" style="text-align:center">
+<h2>OFFLINE</h2>
+<p class="sub">Play on this device.</p>
+<button class="primary" onclick="startOfflineVersus()">⚔️ VERSUS MODE</button>
+<button class="primary" style="background:linear-gradient(#21b86b,#07552e)" onclick="startOfflineBot()">🤖 PLAY VS BOT</button>
+<button class="primary" style="background:#6b351f" onclick="showScreen('home')">← BACK</button>
+</div>
+</section>
+
+<section id="onlineMenu" class="screen">
+<div class="panel" style="text-align:center">
+<h2>ONLINE</h2>
+<p class="sub">Select game type and entry level.</p>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px">
+<button id="typeCarrom" onclick="selectGameType('CARROM')">CARROM</button>
+<button id="typeDisc" onclick="selectGameType('DISC POOL')">DISC POOL</button>
+<button id="typeFree" onclick="selectGameType('FREESTYLE')">FREESTYLE</button>
+</div>
+<div id="coinLevels" style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px">
+<button onclick="selectCoin(100)">100</button>
+<button onclick="selectCoin(500)">500</button>
+<button onclick="selectCoin(1000)">1,000</button>
+<button onclick="selectCoin(5000)">5,000</button>
+<button onclick="selectCoin(10000)">10,000</button>
+</div>
+<button class="primary" onclick="startQuickMatch()">🔍 QUICK MATCH</button>
+<button class="primary" style="background:linear-gradient(#21b86b,#07552e)" onclick="createPrivateRoom()">👥 PRIVATE ROOM</button>
+<div style="margin-top:12px;border-top:1px solid #87542d;padding-top:10px">
+<input type="text" id="joinRoomCode" placeholder="Enter room code...">
+<button class="primary" style="background:linear-gradient(#2b6cb0,#1a365d);margin-top:8px" onclick="joinPrivateRoom()">JOIN ROOM</button>
+</div>
+<button class="primary" style="background:#6b351f" onclick="showScreen('home')">← BACK</button>
+</div>
+</section>
+
+<section id="matchmakingScreen" class="screen">
+<div class="panel" style="text-align:center">
+<h2>SEARCHING FOR PLAYER...</h2>
+<p class="sub" id="matchmakingStatusText">Connecting to the online match...</p>
+<button class="primary" style="background:#a1261d" onclick="cancelMatchmaking()">CANCEL SEARCH</button>
+</div>
+</section>
+
+
+<section id="gameScreen" class="screen">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+<div id="playerInfo1">👤 YOU: <span id="p1Score">0</span></div>
+<div class="timer-badge" id="matchTimer">⏳ 30s</div>
+<div id="playerInfo2">🌐 OPPONENT: <span id="p2Score">0</span></div>
+</div>
+<div class="boardwrap"><canvas id="board" width="500" height="500"></canvas></div>
+<button class="primary" style="background:#a1261d;margin-top:10px" onclick="leaveMatch()">LEAVE MATCH</button>
+</section>
+
+<div class="online-comms" id="commControls" style="display:none"><button class="comm-btn" onclick="toggleChat()">💬</button></div>
+<div class="chat-panel" id="chatPanel">
+<div class="chat-head"><span>ONLINE CHAT</span><button onclick="toggleChat()">✕</button></div>
+<div class="chat-messages" id="chatMsgs"></div>
+<div class="chat-compose"><input type="text" id="chatInput" placeholder="Type a message..."><button onclick="sendChatMessage()">SEND</button></div>
+</div>
+</div>
+
+<audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+<script>
+const firebaseConfig={databaseURL:"https://carrom-king-naseem-default-rtdb.firebaseio.com/"};
+if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+
+let currentRoomId=null,playerRole=null,roomRef=null,chatRef=null;
+let isMyTurn=false,animationFrameId=null,isDraggingStriker=false,isPhysicsSimulating=false,isResolvingShot=false,currentShotId=null;
+let matchStatus="waiting",clientServerTimeOffset=0;
+let playMode="ONLINE";
+let offlineMode=null;
+let selectedGameType="CARROM";
+let selectedCoin=100;
+let dragStartPos={x:0,y:0};
+const BOARD_SIZE=500;
+
+let striker={x:250,y:420,vx:0,vy:0,active:true,aimAngle:0,power:0};
+let pieces=[
+{id:"q",x:250,y:250,vx:0,vy:0,type:"queen",color:"#ff2277",active:true},
+{id:"w1",x:235,y:235,vx:0,vy:0,type:"coin",color:"#fff",active:true},
+{id:"w2",x:265,y:235,vx:0,vy:0,type:"coin",color:"#fff",active:true},
+{id:"b1",x:235,y:265,vx:0,vy:0,type:"coin",color:"#222",active:true},
+{id:"b2",x:265,y:265,vx:0,vy:0,type:"coin",color:"#222",active:true},
+{id:"w3",x:250,y:220,vx:0,vy:0,type:"coin",color:"#fff",active:true},
+{id:"b3",x:250,y:280,vx:0,vy:0,type:"coin",color:"#222",active:true}
+];
+let scores={p1:0,p2:0};
+let turnState={current:"p1",turnId:1,expiresAt:0,activeShotId:null,shotOwner:null};
+
+db.ref(".info/serverTimeOffset").on("value",s=>clientServerTimeOffset=s.val()||0);
+const serverNow=()=>Date.now()+clientServerTimeOffset;
+const baselineY=r=>r==="p2"?80:420;
+const roomId=(p)=>p+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,9);
+const shotId=()=> "shot_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,9);
+
+function showScreen(id){
+document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+document.getElementById("commControls").style.display=id==="gameScreen"?"flex":"none";
+}
+
+
+function showOfflineMenu(){ showScreen("offlineMenu"); }
+function showOnlineMenu(){
+  showScreen("onlineMenu");
+  selectGameType(selectedGameType);
+  selectCoin(selectedCoin);
+}
+function selectGameType(type){
+  selectedGameType=type;
+  ["CARROM","DISC POOL","FREESTYLE"].forEach(t=>{
+    const id=t==="CARROM"?"typeCarrom":t==="DISC POOL"?"typeDisc":"typeFree";
+    const b=document.getElementById(id);
+    if(b) b.style.outline=t===type?"3px solid #00ffcc":"none";
+  });
+}
+function selectCoin(amount){
+  selectedCoin=amount;
+  document.querySelectorAll("#coinLevels button").forEach(b=>{
+    b.style.outline=(b.textContent.replace(/,/g,"")===String(amount))?"3px solid #00ffcc":"none";
+  });
+}
+function resetLocalBoard(){
+  pieces=[
+    {id:"q",x:250,y:250,vx:0,vy:0,type:"queen",color:"#ff2277",active:true},
+    {id:"w1",x:235,y:235,vx:0,vy:0,type:"coin",color:"#fff",active:true},
+    {id:"w2",x:265,y:235,vx:0,vy:0,type:"coin",color:"#fff",active:true},
+    {id:"b1",x:235,y:265,vx:0,vy:0,type:"coin",color:"#222",active:true},
+    {id:"b2",x:265,y:265,vx:0,vy:0,type:"coin",color:"#222",active:true},
+    {id:"w3",x:250,y:220,vx:0,vy:0,type:"coin",color:"#fff",active:true},
+    {id:"b3",x:250,y:280,vx:0,vy:0,type:"coin",color:"#222",active:true}
+  ];
+  scores={p1:0,p2:0};
+  striker={x:250,y:420,vx:0,vy:0,active:true,aimAngle:0,power:0};
+  turnState={current:"p1",turnId:1,expiresAt:0,activeShotId:null,shotOwner:null};
+  currentShotId=null;
+  isDraggingStriker=false;
+  isPhysicsSimulating=false;
+  isResolvingShot=false;
+}
+function startOfflineVersus(){
+  playMode="OFFLINE"; offlineMode="VERSUS";
+  resetLocalBoard(); playerRole="p1"; matchStatus="playing"; isMyTurn=true;
+  enterGameScreen();
+}
+function startOfflineBot(){
+  playMode="OFFLINE"; offlineMode="BOT";
+  resetLocalBoard(); playerRole="p1"; matchStatus="playing"; isMyTurn=true;
+  enterGameScreen();
+}
+function finishOfflineTurn(){
+  const next=turnState.current==="p1"?"p2":"p1";
+  turnState={current:next,turnId:turnState.turnId+1,expiresAt:0,activeShotId:null,shotOwner:null};
+  striker={x:250,y:baselineY(next),vx:0,vy:0,active:true,aimAngle:0,power:0};
+  currentShotId=null; isResolvingShot=false; isPhysicsSimulating=false;
+  playerRole=next; isMyTurn=true; updatePlayerInfoLabels();
+  if(offlineMode==="BOT" && next==="p2"){
+    isMyTurn=false;
+    setTimeout(runBotShot,650);
+  }
+}
+function runBotShot(){
+  if(playMode!=="OFFLINE"||offlineMode!=="BOT"||turnState.current!=="p2")return;
+  playerRole="p2"; isMyTurn=true;
+  striker.x=180+Math.random()*140; striker.y=80;
+  striker.aimAngle=(-0.8+Math.random()*1.6);
+  striker.power=10+Math.random()*12;
+  currentShotId="bot_"+Date.now();
+  isPhysicsSimulating=true;
+  striker.vx=-Math.cos(striker.aimAngle)*striker.power;
+  striker.vy=-Math.sin(striker.aimAngle)*striker.power;
+  runPhysicsEngine();
+}
+function backToMenus(){
+  if(roomRef) return leaveMatch(false);
+  if(animationFrameId) cancelAnimationFrame(animationFrameId);
+  playMode="ONLINE"; offlineMode=null; playerRole=null; matchStatus="waiting";
+  showScreen("home");
+}
+function startQuickMatch(){
+if(roomRef)return alert("You are already in a match.");
+showScreen("matchmakingScreen");
+document.getElementById("matchmakingStatusText").innerText="Searching for an open room...";
+const open=db.ref("matchmaking/openRooms");
+open.orderByChild("status").equalTo("waiting").limitToFirst(1).once("value").then(s=>{
+const v=s.val();
+if(!v){
+currentRoomId=roomId("room_qm");playerRole="p1";roomRef=db.ref("rooms/"+currentRoomId);
+return roomRef.set({
+status:"waiting",
+p1:{id:"user_p1_"+Date.now(),score:0},
+p2:{id:"waiting",score:0},
+turn:{current:"p1",turnId:1,expiresAt:0,activeShotId:null,shotOwner:null},
+striker:{x:250,y:420,vx:0,vy:0,aimAngle:0,power:0},pieces,chat:{}
+}).then(()=>{
+const o=db.ref("matchmaking/openRooms/"+currentRoomId);
+return o.set({status:"waiting",createdAt:firebase.database.ServerValue.TIMESTAMP}).then(()=>{
+roomRef.onDisconnect().update({status:"abandoned"});
+o.onDisconnect().remove();
+document.getElementById("matchmakingStatusText").innerText="Waiting for an opponent...";
+listenToRoom();
+});
+});
+}
+currentRoomId=Object.keys(v)[0];playerRole="p2";roomRef=db.ref("rooms/"+currentRoomId);
+return roomRef.transaction(d=>{
+if(!d||d.status!=="waiting"||d.p2?.id!=="waiting")return;
+d.p2={id:"user_p2_"+Date.now(),score:0};
+d.status="playing";
+d.turn={current:"p1",turnId:Number(d.turn?.turnId)||1,expiresAt:serverNow()+30000,activeShotId:null,shotOwner:null};
+return d;
+}).then(r=>{
+if(!r.committed){cleanupLocalState();showScreen("onlineMenu");alert("This room is full or closed. Please try Quick Match again.");return;}
+db.ref("matchmaking/openRooms/"+currentRoomId).remove();
+roomRef.onDisconnect().update({status:"abandoned"});
+enterGameScreen();listenToRoom();
+});
+}).catch(e=>{console.error(e);cleanupLocalState();showScreen("home");alert("Quick Match could not start.")});
+}
+
+function createPrivateRoom(){
+if(roomRef)return alert("You are already in a match.");
+currentRoomId=roomId("room_priv");playerRole="p1";roomRef=db.ref("rooms/"+currentRoomId);
+roomRef.set({
+status:"waiting",p1:{id:"user_p1_"+Date.now(),score:0},p2:{id:"waiting",score:0},
+turn:{current:"p1",turnId:1,expiresAt:0,activeShotId:null,shotOwner:null},
+striker:{x:250,y:420,vx:0,vy:0,aimAngle:0,power:0},pieces,chat:{}
+}).then(()=>{
+roomRef.onDisconnect().update({status:"abandoned"});
+alert("PRIVATE ROOM CODE:\n"+currentRoomId+"\n\nShare it with your friend.");
+enterGameScreen();listenToRoom();
+}).catch(e=>{console.error(e);cleanupLocalState();alert("Could not create the private room.")});
+}
+
+function joinPrivateRoom(){
+if(roomRef)return alert("You are already in a match.");
+const code=document.getElementById("joinRoomCode").value.trim();
+if(!code)return alert("Please enter a valid room code!");
+currentRoomId=code;playerRole="p2";roomRef=db.ref("rooms/"+code);
+roomRef.once("value").then(s=>{
+if(!s.exists()){alert("This room does not exist!");cleanupLocalState();return;}
+return roomRef.transaction(d=>{
+if(!d||d.status!=="waiting"||d.p2?.id!=="waiting")return;
+d.p2={id:"user_p2_"+Date.now(),score:0};
+d.status="playing";
+d.turn={current:"p1",turnId:Number(d.turn?.turnId)||1,expiresAt:serverNow()+30000,activeShotId:null,shotOwner:null};
+return d;
+});
+}).then(r=>{
+if(!r)return;
+if(!r.committed){alert("यह रूम पहले ही भर चुका है या बंद है।");cleanupLocalState();return;}
+roomRef.onDisconnect().update({status:"abandoned"});
+enterGameScreen();listenToRoom();
+}).catch(e=>{console.error(e);alert("Could not join the room.");cleanupLocalState()});
+}
+
+function cancelMatchmaking(){
+if(currentRoomId&&playerRole==="p1"){
+const r=db.ref("rooms/"+currentRoomId),o=db.ref("matchmaking/openRooms/"+currentRoomId);
+r.onDisconnect().cancel();o.onDisconnect().cancel();r.remove();o.remove();
+}
+cleanupLocalState();showScreen("home");
+}
+
+function enterGameScreen(){showScreen("gameScreen");updatePlayerInfoLabels();initBoardInteractions();startRenderLoop()}
+
+function updatePlayerInfoLabels(){
+if(playMode==="OFFLINE"){
+  document.getElementById("playerInfo1").innerHTML=`👤 ${playerRole==="p1"?"PLAYER 1":"PLAYER 2"}: <span id="p1Score">${playerRole==="p1"?scores.p1:scores.p2}</span>`;
+  document.getElementById("playerInfo2").innerHTML=`🎮 ${offlineMode==="BOT"?"BOT":"PLAYER "+(playerRole==="p1"?"2":"1")}: <span id="p2Score">${playerRole==="p1"?scores.p2:scores.p1}</span>`;
+  return;
+}
+if(playerRole==="p2"){
+document.getElementById("playerInfo1").innerHTML=`👤 आप (P2): <span id="p1Score">${scores.p2}</span>`;
+document.getElementById("playerInfo2").innerHTML=`🌐 ऑपोनेंट (P1): <span id="p2Score">${scores.p1}</span>`;
+}else{
+document.getElementById("playerInfo1").innerHTML=`👤 आप (P1): <span id="p1Score">${scores.p1}</span>`;
+document.getElementById("playerInfo2").innerHTML=`🌐 ऑपोनेंट (P2): <span id="p2Score">${scores.p2}</span>`;
+}
+}
+
+function listenToRoom(){
+if(!roomRef)return;
+roomRef.on("value",s=>{
+const d=s.val();if(!d)return;
+matchStatus=d.status||"waiting";
+
+if(matchStatus==="abandoned"){
+if(document.getElementById("gameScreen").classList.contains("active"))alert("Opponent left the match!");
+leaveMatch(false);return;
+}
+
+if(playerRole==="p1"&&matchStatus==="waiting"&&d.p2?.id!=="waiting"){
+roomRef.transaction(x=>{
+if(!x||x.status!=="waiting"||x.p2?.id==="waiting")return;
+x.status="playing";
+x.turn={current:"p1",turnId:Number(x.turn?.turnId)||1,expiresAt:serverNow()+30000,activeShotId:null,shotOwner:null};
+return x;
+});
+}
+
+if(d.p1?.score!==undefined)scores.p1=Number(d.p1.score)||0;
+if(d.p2?.score!==undefined)scores.p2=Number(d.p2.score)||0;
+updatePlayerInfoLabels();
+
+if(d.turn){
+turnState={
+current:d.turn.current||"p1",
+turnId:Number(d.turn.turnId)||1,
+expiresAt:Number(d.turn.expiresAt)||0,
+activeShotId:d.turn.activeShotId||null,
+shotOwner:d.turn.shotOwner||null
+};
+isMyTurn=matchStatus==="playing"&&turnState.current===playerRole&&!turnState.activeShotId&&!isResolvingShot&&!isPhysicsSimulating;
+}
+
+if(d.striker&&!isDraggingStriker&&!isPhysicsSimulating&&!isResolvingShot){
+striker.x=Number(d.striker.x)||250;
+striker.y=Number.isFinite(Number(d.striker.y))?Number(d.striker.y):baselineY(turnState.current);
+striker.vx=Number(d.striker.vx)||0;striker.vy=Number(d.striker.vy)||0;
+striker.aimAngle=Number(d.striker.aimAngle)||0;striker.power=Number(d.striker.power)||0;
+}
+if(d.pieces&&!isPhysicsSimulating&&!isResolvingShot)pieces=Array.isArray(d.pieces)?d.pieces:Object.values(d.pieces);
+
+if(matchStatus==="playing"&&document.getElementById("matchmakingScreen").classList.contains("active"))enterGameScreen();
+});
+
+chatRef=db.ref("rooms/"+currentRoomId+"/chat");
+chatRef.on("child_added",s=>{
+const m=s.val();if(!m)return;
+const box=document.getElementById("chatMsgs"),div=document.createElement("div"),b=document.createElement("b");
+div.className="chat-msg";b.textContent=(m.sender||"Player")+": ";div.appendChild(b);div.appendChild(document.createTextNode(m.text||""));box.appendChild(div);box.scrollTop=box.scrollHeight;
+});
+}
+
+function checkAndHandleTurnTimeout(){
+if(playMode==="OFFLINE"){
+  document.getElementById("matchTimer").innerText=turnState.current==="p1"?"P1 TURN":"P2 TURN";
+  return;
+}
+if(!roomRef||matchStatus!=="playing"||!turnState.expiresAt)return;
+const remaining=Math.max(0,Math.ceil((turnState.expiresAt-serverNow())/1000));
+document.getElementById("matchTimer").innerText=`⏳ ${remaining}s`;
+if(remaining<=5&&remaining>0)playAlertSound();
+if(remaining===0&&!turnState.activeShotId&&!isDraggingStriker&&!isPhysicsSimulating&&!isResolvingShot)
+atomicSwitchTurn(turnState.turnId,"timeout",null,null,null,null);
+}
+setInterval(checkAndHandleTurnTimeout,250);
+
+function playAlertSound(){const a=document.getElementById("alertSound");if(a){a.currentTime=0;a.play().catch(()=>{})}}
+
+function atomicSwitchTurn(expectedTurnId,reason,completedShotId,customPieces,customScores,customStriker){
+if(!roomRef)return;
+isResolvingShot=reason==="shotComplete";
+roomRef.transaction(d=>{
+if(!d?.turn)return;
+const t=d.turn;
+if(Number(t.turnId)!==Number(expectedTurnId))return;
+
+if(reason==="timeout"){
+if(t.activeShotId)return;
+if(Number(t.expiresAt||0)>serverNow())return;
+}
+
+if(reason==="shotComplete"){
+if(!t.activeShotId||t.activeShotId!==completedShotId||t.shotOwner!==playerRole)return;
+}
+
+const next=t.current==="p1"?"p2":"p1";
+d.turn={current:next,turnId:Number(t.turnId)+1,expiresAt:serverNow()+30000,activeShotId:null,shotOwner:null};
+d.striker=customStriker||{x:250,y:baselineY(next),vx:0,vy:0,aimAngle:0,power:0};
+if(customPieces)d.pieces=customPieces;
+if(customScores){d.p1=d.p1||{};d.p2=d.p2||{};d.p1.score=Number(customScores.p1)||0;d.p2.score=Number(customScores.p2)||0}
+return d;
+}).then(r=>{
+if(r.committed){
+  const nextTurn=r.snapshot.val()?.turn;
+  if(nextTurn){
+    turnState={
+      current:nextTurn.current||"p1",
+      turnId:Number(nextTurn.turnId)||1,
+      expiresAt:Number(nextTurn.expiresAt)||0,
+      activeShotId:nextTurn.activeShotId||null,
+      shotOwner:nextTurn.shotOwner||null
+    };
+    isMyTurn=matchStatus==="playing"&&turnState.current===playerRole&&!turnState.activeShotId&&!isPhysicsSimulating;
+  }
+  if(reason==="shotComplete"){currentShotId=null;isPhysicsSimulating=false;}
+}
+isResolvingShot=false;
+}).catch(e=>{console.error("Turn transaction failed:",e);isResolvingShot=false});
+}
+
+function initBoardInteractions(){
+const canvas=document.getElementById("board");
+
+canvas.onpointerdown=e=>{
+if(!isMyTurn||isPhysicsSimulating||isResolvingShot||matchStatus!=="playing"||turnState.activeShotId)return;
+const rect=canvas.getBoundingClientRect(),scale=canvas.width/rect.width;
+let x=(e.clientX-rect.left)*scale,y=(e.clientY-rect.top)*scale;
+if(playerRole==="p2"){x=BOARD_SIZE-x;y=BOARD_SIZE-y}
+if(Math.hypot(x-striker.x,y-baselineY(playerRole))>25)return;
+
+if(playMode==="OFFLINE"){
+  currentShotId=shotId();
+  isDraggingStriker=true;
+  dragStartPos={x,y};
+  striker.x=Math.max(120,Math.min(380,x));
+  striker.y=baselineY(playerRole);
+  striker.power=0;
+  return;
+}
+const id=shotId(),expected=turnState.turnId;
+roomRef.child("turn").transaction(t=>{
+if(!t||t.current!==playerRole||Number(t.turnId)!==Number(expected)||t.activeShotId)return;
+t.activeShotId=id;t.shotOwner=playerRole;return t;
+}).then(r=>{
+if(!r.committed)return;
+const t=r.snapshot.val();
+if(t.activeShotId!==id||t.shotOwner!==playerRole)return;
+currentShotId=id;
+turnState.activeShotId=id;
+turnState.shotOwner=playerRole;
+isMyTurn=true;
+isDraggingStriker=true;
+dragStartPos={x,y};
+striker.x=Math.max(120,Math.min(380,x));striker.y=baselineY(playerRole);striker.power=0;
+try{canvas.setPointerCapture(e.pointerId)}catch(_){}
+}).catch(e=>console.error("Shot claim failed:",e));
+};
+
+canvas.onpointermove=e=>{
+if(!isDraggingStriker||!isMyTurn||!currentShotId||isResolvingShot)return;
+const rect=canvas.getBoundingClientRect(),scale=canvas.width/rect.width;
+let x=(e.clientX-rect.left)*scale,y=(e.clientY-rect.top)*scale;
+if(playerRole==="p2"){x=BOARD_SIZE-x;y=BOARD_SIZE-y}
+striker.x=Math.max(120,Math.min(380,x));striker.y=baselineY(playerRole);
+const dx=x-dragStartPos.x,dy=y-dragStartPos.y;
+striker.aimAngle=Math.atan2(dy,dx);striker.power=Math.min(30,Math.hypot(dx,dy)*.2);
+if(playMode==="OFFLINE") return;
+roomRef.child("striker").update({x:striker.x,y:striker.y,vx:0,vy:0,aimAngle:striker.aimAngle,power:striker.power});
+};
+
+canvas.onpointerup=e=>{
+if(!isDraggingStriker||!currentShotId)return;
+try{canvas.releasePointerCapture(e.pointerId)}catch(_){}
+isDraggingStriker=false;
+if(playMode==="OFFLINE"){
+  if(striker.power>1) fireStrikerShot();
+  else {
+    currentShotId=null; striker.x=250; striker.y=baselineY(playerRole);
+    striker.vx=0; striker.vy=0; striker.power=0;
+  }
+  return;
+}
+if(striker.power>1)fireStrikerShot();
+else{
+const id=currentShotId;
+roomRef.child("turn").transaction(t=>{
+if(t?.activeShotId===id&&t.shotOwner===playerRole){t.activeShotId=null;t.shotOwner=null;return t}
+}).then(()=>{currentShotId=null;striker.x=250;striker.y=baselineY(playerRole);striker.vx=0;striker.vy=0;striker.power=0;return roomRef.child("striker").set({x:250,y:baselineY(playerRole),vx:0,vy:0,aimAngle:0,power:0})});
+}
+};
+}
+
+function fireStrikerShot(){
+if(!currentShotId||!isMyTurn||turnState.activeShotId!==currentShotId)return;
+isPhysicsSimulating=true;
+striker.vx=-Math.cos(striker.aimAngle)*striker.power;
+striker.vy=-Math.sin(striker.aimAngle)*striker.power;
+if(playMode!=="OFFLINE"){
+  roomRef.child("striker").update({x:striker.x,y:striker.y,vx:striker.vx,vy:striker.vy,aimAngle:striker.aimAngle,power:striker.power});
+}
+runPhysicsEngine();
+}
+
+const pockets=[{x:45,y:45,r:22},{x:455,y:45,r:22},{x:45,y:455,r:22},{x:455,y:455,r:22}];
+
+function runPhysicsEngine(){
+if(!currentShotId||!isPhysicsSimulating)return;
+let moving=false,friction=.985;
+striker.x+=striker.vx;striker.y+=striker.vy;striker.vx*=friction;striker.vy*=friction;
+if(Math.hypot(striker.vx,striker.vy)>.2)moving=true;else{striker.vx=0;striker.vy=0}
+const min=40,max=460;
+if(striker.x<min){striker.x=min;striker.vx*=-1}if(striker.x>max){striker.x=max;striker.vx*=-1}
+if(striker.y<min){striker.y=min;striker.vy*=-1}if(striker.y>max){striker.y=max;striker.vy*=-1}
+
+pockets.forEach(pkt=>{
+if(Math.hypot(striker.x-pkt.x,striker.y-pkt.y)<pkt.r){
+striker.x=250;striker.y=baselineY(playerRole);striker.vx=0;striker.vy=0;striker.power=0;
+if(playerRole==="p1")scores.p1=Math.max(0,scores.p1-5);else scores.p2=Math.max(0,scores.p2-5);
+}
+});
+
+pieces.forEach(p=>{
+if(!p.active)return;
+p.x+=p.vx;p.y+=p.vy;p.vx*=friction;p.vy*=friction;
+if(Math.hypot(p.vx,p.vy)>.2)moving=true;else{p.vx=0;p.vy=0}
+if(p.x<min){p.x=min;p.vx*=-1}if(p.x>max){p.x=max;p.vx*=-1}if(p.y<min){p.y=min;p.vy*=-1}if(p.y>max){p.y=max;p.vy*=-1}
+pockets.forEach(pkt=>{
+if(Math.hypot(p.x-pkt.x,p.y-pkt.y)<pkt.r){
+p.active=false;p.x=-100;p.y=-100;p.vx=0;p.vy=0;
+if(playerRole==="p1")scores.p1+=p.type==="queen"?50:10;else scores.p2+=p.type==="queen"?50:10;
+}
+});
+});
+
+pieces.forEach(p=>{
+if(!p.active)return;
+const dist=Math.hypot(striker.x-p.x,striker.y-p.y);
+if(dist<24){
+const d=Math.max(dist,.001),a=Math.atan2(p.y-striker.y,p.x-striker.x),overlap=24-d;
+p.x+=Math.cos(a)*overlap;p.y+=Math.sin(a)*overlap;
+const tvx=p.vx,tvy=p.vy;p.vx=striker.vx*.8+Math.cos(a)*3;p.vy=striker.vy*.8+Math.sin(a)*3;
+striker.vx=tvx*.5;striker.vy=tvy*.5;moving=true;
+}
+});
+
+for(let i=0;i<pieces.length;i++)for(let j=i+1;j<pieces.length;j++){
+const a=pieces[i],b=pieces[j];if(!a.active||!b.active)continue;
+const dist=Math.hypot(a.x-b.x,a.y-b.y);
+if(dist<24){
+const d=Math.max(dist,.001),overlap=24-d,ang=Math.atan2(b.y-a.y,b.x-a.x);
+a.x-=Math.cos(ang)*overlap*.5;a.y-=Math.sin(ang)*overlap*.5;
+b.x+=Math.cos(ang)*overlap*.5;b.y+=Math.sin(ang)*overlap*.5;
+const vx=a.vx,vy=a.vy;a.vx=b.vx*.9;a.vy=b.vy*.9;b.vx=vx*.9;b.vy=vy*.9;moving=true;
+}
+}
+
+if(moving){requestAnimationFrame(runPhysicsEngine);return}
+
+const completedShotId=currentShotId;
+const completedTurnId=turnState.turnId;
+const finalScores={p1:scores.p1,p2:scores.p2};
+const next=turnState.current==="p1"?"p2":"p1";
+const finalStriker={x:250,y:baselineY(next),vx:0,vy:0,aimAngle:0,power:0};
+isPhysicsSimulating=false;
+
+if(playMode==="OFFLINE"){
+  isResolvingShot=true;
+  setTimeout(()=>finishOfflineTurn(),50);
+  return;
+}
+
+atomicSwitchTurn(completedTurnId,"shotComplete",completedShotId,pieces,finalScores,finalStriker);
+}
+
+function startRenderLoop(){
+if(animationFrameId)cancelAnimationFrame(animationFrameId);
+function render(){drawBoardCanvas();animationFrameId=requestAnimationFrame(render)}
+render();
+}
+
+function drawBoardCanvas(){
+const c=document.getElementById("board");if(!c)return;
+const ctx=c.getContext("2d");ctx.save();
+if(playerRole==="p2"){ctx.translate(BOARD_SIZE,BOARD_SIZE);ctx.rotate(Math.PI)}
+ctx.fillStyle="#f4d5a2";ctx.fillRect(0,0,BOARD_SIZE,BOARD_SIZE);
+ctx.strokeStyle="#50301b";ctx.lineWidth=14;ctx.strokeRect(7,7,BOARD_SIZE-14,BOARD_SIZE-14);
+ctx.beginPath();ctx.arc(250,250,45,0,Math.PI*2);ctx.fillStyle="#d49b57";ctx.fill();ctx.stroke();
+ctx.beginPath();ctx.arc(250,250,12,0,Math.PI*2);ctx.fillStyle="#a1261d";ctx.fill();
+pockets.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle="#120603";ctx.fill()});
+ctx.strokeStyle="#a1261d";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(100,420);ctx.lineTo(400,420);ctx.moveTo(100,80);ctx.lineTo(400,80);ctx.stroke();
+pieces.forEach(p=>{if(!p.active)return;ctx.beginPath();ctx.arc(p.x,p.y,12,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();ctx.lineWidth=2;ctx.strokeStyle="#000";ctx.stroke()});
+ctx.beginPath();ctx.arc(striker.x,striker.y,16,0,Math.PI*2);ctx.fillStyle=isMyTurn?"#ffcc00":"#888";ctx.fill();ctx.lineWidth=3;ctx.strokeStyle="#a1261d";ctx.stroke();
+if(isMyTurn&&striker.power>0){
+const a=striker.aimAngle+Math.PI;ctx.beginPath();ctx.moveTo(striker.x,striker.y);ctx.lineTo(striker.x+Math.cos(a)*80,striker.y+Math.sin(a)*80);ctx.strokeStyle="#00ffcc";ctx.lineWidth=3;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);
+}
+ctx.restore();
+}
+
+function toggleChat(){document.getElementById("chatPanel").classList.toggle("open")}
+function sendChatMessage(){
+const input=document.getElementById("chatInput"),text=input.value.trim();
+if(!text||!roomRef||matchStatus!=="playing")return;
+roomRef.child("chat").push({sender:playerRole==="p1"?"Player 1":"Player 2",text,timestamp:firebase.database.ServerValue.TIMESTAMP});
+input.value="";
+}
+document.getElementById("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter")sendChatMessage()});
+
+function cleanupLocalState(){
+if(animationFrameId){cancelAnimationFrame(animationFrameId);animationFrameId=null}
+if(roomRef){roomRef.onDisconnect().cancel();roomRef.off()}
+if(chatRef)chatRef.off();
+if(currentRoomId){const o=db.ref("matchmaking/openRooms/"+currentRoomId);o.onDisconnect().cancel();o.remove()}
+const a=document.getElementById("alertSound");if(a){a.pause();a.currentTime=0}
+roomRef=null;chatRef=null;currentRoomId=null;playerRole=null;isMyTurn=false;isDraggingStriker=false;isPhysicsSimulating=false;isResolvingShot=false;currentShotId=null;matchStatus="waiting";
+document.getElementById("chatMsgs").innerHTML="";document.getElementById("chatPanel").classList.remove("open");
+}
+
+function leaveMatch(showAlert=true){
+  if(playMode==="OFFLINE"){
+    if(animationFrameId){cancelAnimationFrame(animationFrameId);animationFrameId=null}
+    const a=document.getElementById("alertSound");
+    if(a){a.pause();a.currentTime=0}
+    roomRef=null;chatRef=null;currentRoomId=null;playerRole=null;isMyTurn=false;
+    isDraggingStriker=false;isPhysicsSimulating=false;isResolvingShot=false;currentShotId=null;
+    matchStatus="waiting";offlineMode=null;playMode="ONLINE";
+    document.getElementById("chatPanel").classList.remove("open");
+    showScreen("home");
+    return;
+  }
+
+  const r=roomRef,id=currentRoomId,role=playerRole;
+  if(r){
+    r.onDisconnect().cancel();
+    if(role)r.update({status:"abandoned"});
+    r.off();
+  }
+  if(chatRef)chatRef.off();
+  if(id){
+    const o=db.ref("matchmaking/openRooms/"+id);
+    o.onDisconnect().cancel();
+    o.remove();
+  }
+  const a=document.getElementById("alertSound");
+  if(a){a.pause();a.currentTime=0}
+  if(animationFrameId){cancelAnimationFrame(animationFrameId);animationFrameId=null}
+  roomRef=null;chatRef=null;currentRoomId=null;playerRole=null;isMyTurn=false;
+  isDraggingStriker=false;isPhysicsSimulating=false;isResolvingShot=false;currentShotId=null;matchStatus="waiting";
+  document.getElementById("chatPanel").classList.remove("open");
+  showScreen("home");
+}
+</script>
+</body>
+</html>
